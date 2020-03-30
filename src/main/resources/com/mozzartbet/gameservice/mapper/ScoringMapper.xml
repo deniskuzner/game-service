@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="com.mozzartbet.gameservice.mapper.ScoringMapper">
+
+	<!-- public long count(); -->
+	<select id="count" resultType="Long">
+		select count(*) from matches
+	</select>
+
+	<resultMap type="ScoringQuarter" id="ScoringMap">
+		<id column="id" property="id" />
+		<result column="created_on" property="createdOn" />
+		<result column="modified_on" property="modifiedOn" />
+
+		<result column="quarter" property="quarter"/>
+		<result column="host_points" property="hostPoints"/>
+		<result column="guest_points" property="guestPoints"/>
+		
+		<association property="match" javaType="Match">
+			<id column="match_id" property="id" />
+			<association property="host" javaType="Team">
+				<id column="host_id" property="id" />
+				<result column="host_name" property="name" />
+				<result column="host_url" property="url" />
+			</association>
+			<association property="guest" javaType="Team">
+				<id column="guest_id" property="id" />
+				<result column="guest_name" property="name" />
+				<result column="guest_url" property="url" />
+			</association>
+		</association>
+	</resultMap>
+	
+	<!-- public int insert(ScoringQuarter entity); -->
+	<insert id="insert" parameterType="ScoringQuarter">
+		<selectKey order="BEFORE" resultType="long" keyProperty="id">
+			select sq_scoring.nextval from dual
+		</selectKey>
+		INSERT INTO scoring(id, created_on, modified_on, quarter, host_points, guest_points, match_id)
+		VALUES(#{id}, current_timestamp, current_timestamp, #{quarter}, #{hostPoints}, #{guestPoints}, #{match.id})
+	</insert>
+	
+	<sql id="getScoringQuarter">
+		SELECT s.*, m.id match_id, h.id host_id, h.name host_name, h.url host_url, g.id guest_id, g.name guest_name, g.url guest_url
+		FROM scoring s INNER JOIN matches m ON s.match_id = m.id INNER JOIN teams h on m.host_id = h.id INNER JOIN teams g on m.guest_id = g.id
+	</sql>
+	
+	<!-- public ScoringQuarter getById(@Param("id") Long id); -->
+	<select id="getById" parameterType="long" resultMap="ScoringMap">
+		<include refid="getScoringQuarter"/>
+		WHERE s.id = #{id}
+	</select>
+	
+	<!-- public List<ScoringQuarter> getAll(); -->
+	<select id="getAll" resultMap="ScoringMap">
+		<include refid="getScoringQuarter"/>
+	</select>
+	
+	<!-- public List<ScoringQuarter> getForMatch(@Param("id") Long id); -->
+	<select id="getForMatch" parameterType="long" resultMap="ScoringMap">
+		<include refid="getScoringQuarter"/>
+		WHERE s.match_id = #{id}
+		ORDER BY quarter
+	</select>
+	
+	<!-- public int update(ScoringQuarter entity); -->
+	<update id="update" parameterType="ScoringQuarter">
+		UPDATE scoring
+		SET modified_on = current_timestamp,
+			quarter = #{quarter},
+			host_points = #{hostPoints},
+			guest_points = #{guestPoints}
+		WHERE id = #{id}
+	</update>
+	
+	<!-- public int deleteById(@Param("id") Long id); -->
+	<delete id="deleteById" parameterType="long">
+		DELETE FROM scoring
+		WHERE id = #{id}
+	</delete>
+	
+	<!-- public int deleteForMatch(@Param("matchId") Long matchId); -->
+	<delete id="deleteForMatch" parameterType="long">
+		DELETE FROM scoring
+		WHERE match_id = #{matchId}
+	</delete>
+	
+</mapper>

@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="com.mozzartbet.gameservice.mapper.PlayByPlayActionMapper">
+
+	<!-- public long count(); -->
+	<select id="count" resultType="Long">
+		SELECT count(*) FROM
+		play_by_play_actions
+	</select>
+
+	<resultMap type="PlayByPlayAction" id="PlayByPlayActionMap">
+		<id column="id" property="id" />
+		<result column="created_on" property="createdOn" />
+		<result column="modified_on" property="modifiedOn" />
+
+		<result column="quarter" property="quarter" />
+		<result column="timestamp" property="timestamp" />
+		<result column="description" property="description" />
+		<result column="sum_score" property="sumScore" />
+		<result column="match_id" property="matchId"/>
+		<association property="team" javaType="Team">
+			<id column="team_id" property="id" />
+			<result column="team_name" property="name" />
+			<result column="team_url" property="url" />
+		</association>
+
+		<discriminator javaType="string" column="play_by_play_action_type">
+			<case value="foul_actions" resultType="Foul">
+				<association property="foulByPlayer" javaType="Player">
+					<id column="foul_by_player_id" property="id" />
+					<result column="foul_by_player_name" property="name" />
+					<result column="foul_by_player_url" property="url" />
+				</association>
+			</case>
+			<case value="miss_actions" resultType="Miss">
+				<association property="missPlayer" javaType="Player">
+					<id column="miss_player_id" property="id" />
+					<result column="miss_player_name" property="name" />
+					<result column="miss_player_url" property="url" />
+				</association>
+				<association property="blockPlayer" javaType="Player">
+					<id column="block_player_id" property="id" />
+					<result column="block_player_name" property="name" />
+					<result column="block_player_url" property="url" />
+				</association>
+			</case>
+			<case value="point_actions" resultType="Point">
+				<result column="points" property="points" />
+				<association property="pointPlayer" javaType="Player">
+					<id column="point_player_id" property="id" />
+					<result column="point_player_name" property="name" />
+					<result column="point_player_url" property="url" />
+				</association>
+				<association property="assistPlayer" javaType="Player">
+					<id column="assist_player_id" property="id" />
+					<result column="assist_player_name" property="name" />
+					<result column="assist_player_url" property="url" />
+				</association>
+			</case>
+			<case value="rebound_actions" resultType="Rebound">
+				<association property="player" javaType="Player">
+					<id column="player_id" property="id" />
+					<result column="player_name" property="name" />
+					<result column="player_url" property="url" />
+				</association>
+			</case>
+			<case value="substitution_actions" resultType="Substitution">
+				<association property="inPlayer" javaType="Player">
+					<id column="in_player_id" property="id" />
+					<result column="in_player_name" property="name" />
+					<result column="in_player_url" property="url" />
+				</association>
+				<association property="outPlayer" javaType="Player">
+					<id column="out_player_id" property="id" />
+					<result column="out_player_name" property="name" />
+					<result column="out_player_url" property="url" />
+				</association>
+			</case>
+			<case value="turnover_actions" resultType="Turnover">
+				<association property="turnoverPlayer" javaType="Player">
+					<id column="turnover_player_id" property="id" />
+					<result column="turnover_player_name" property="name" />
+					<result column="turnover_player_url" property="url" />
+				</association>
+				<association property="stealPlayer" javaType="Player">
+					<id column="steal_player_id" property="id" />
+					<result column="steal_player_name" property="name" />
+					<result column="steal_player_url" property="url" />
+				</association>
+			</case>
+		</discriminator>
+
+	</resultMap>
+
+	<sql id="getPlayByPlayAction">
+		SELECT a.*, t.id team_id, t.name team_name, t.url team_url,
+
+		(case
+		when pa.id > 0 then 'point_actions'
+		when ra.id > 0 then 'rebound_actions'
+		when fa.id > 0 then 'foul_actions'
+		when ma.id > 0 then 'miss_actions'
+		when sa.id > 0 then 'substitution_actions'
+		when ta.id > 0 then 'turnover_actions'
+		else 'error'
+		end) play_by_play_action_type,
+
+		pa.*, p1.name point_player_name, p1.url point_player_url, p2.name assist_player_name, p2.url assist_player_url,
+		ra.*, p3.name player_name, p3.url player_url,
+		fa.*, p4.name foul_by_player_name, p4.url foul_by_player_url,
+		ma.*, p5.name miss_player_name, p5.url miss_player_url, p6.name block_player_name, p6.url block_player_url,
+		sa.*, p7.name in_player_name, p7.url in_player_url, p8.name out_player_name, p8.url out_player_url,
+		ta.*, p9.name turnover_player_name, p9.url turnover_player_url, p10.name steal_player_name, p10.url steal_player_url 
+
+		FROM play_by_play_actions a
+		inner join teams t on a.team_id = t.id
+
+		left join point_actions pa on pa.id = a.id left join players p1 on pa.point_player_id = p1.id left join players p2 on pa.assist_player_id = p2.id
+		left join rebound_actions ra on ra.id = a.id left join players p3 on ra.player_id = p3.id
+		left join foul_actions fa on fa.id = a.id left join players p4 on fa.foul_by_player_id = p4.id
+		left join miss_actions ma on ma.id = a.id left join players p5 on ma.miss_player_id = p5.id left join players p6 on ma.block_player_id = p6.id
+		left join substitution_actions sa on sa.id = a.id left join players p7 on sa.in_player_id = p7.id left join players p8 on sa.out_player_id = p8.id
+		left join turnover_actions ta on ta.id = a.id left join players p9 on ta.turnover_player_id = p9.id left join players p10 on ta.steal_player_id = p10.id
+
+	</sql>
+	
+	<!-- public PlayByPlayAction getById(@Param("id") Long id); -->
+	<select id="getById" parameterType="long" resultMap="PlayByPlayActionMap">
+		<include refid="getPlayByPlayAction"></include>
+
+		WHERE a.id = #{id}
+	</select>
+	
+	<!-- public List<PlayByPlayAction> getByMatchId(@Param("id") Long id); -->
+	<select id="getByMatchId" parameterType="long" resultMap="PlayByPlayActionMap">
+		<include refid="getPlayByPlayAction"></include>
+
+		WHERE a.match_id = #{id}
+	</select>
+
+	<!-- public List<PlayByPlayAction> getAll(); -->
+	<select id="getAll" resultMap="PlayByPlayActionMap">
+		<include refid="getPlayByPlayAction" />
+	</select>
+	
+	<!-- public int insert(PlayByPlayAction entity); -->
+	<insert id="insert" parameterType="PlayByPlayAction">
+		<selectKey order="BEFORE" resultType="long" keyProperty="id">
+			select sq_play_by_play_actions.nextval from dual
+		</selectKey>
+		INSERT INTO play_by_play_actions(id, created_on, modified_on, quarter,
+		timestamp, description, sum_score, match_id, team_id) VALUES(#{id},
+		current_timestamp, current_timestamp, #{quarter}, #{timestamp},
+		#{description}, #{sumScore}, #{matchId}, #{team.id})
+	</insert>
+
+	<!-- public int insertSpec(@Param("entity") PlayByPlayAction entity); -->
+	<insert id="insertSpec" parameterType="PlayByPlayAction">
+		<choose>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.playbyplay.Point">
+				INSERT INTO point_actions(id, points, point_player_id, assist_player_id) VALUES(#{entity.id}, #{entity.points}, #{entity.pointPlayer.id}, #{entity.assistPlayer.id, jdbcType=NUMERIC})
+			</when>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.playbyplay.Rebound">
+				INSERT INTO rebound_actions(id, player_id) VALUES(#{entity.id}, #{entity.player.id, jdbcType=NUMERIC})
+			</when>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.playbyplay.Foul">
+				INSERT INTO foul_actions(id, foul_by_player_id) VALUES(#{entity.id}, #{entity.foulByPlayer.id, jdbcType=NUMERIC})
+			</when>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.playbyplay.Miss">
+				INSERT INTO miss_actions(id, miss_player_id, block_player_id) VALUES(#{entity.id}, #{entity.missPlayer.id, jdbcType=NUMERIC}, #{entity.blockPlayer.id, jdbcType=NUMERIC})
+			</when>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.playbyplay.Substitution">
+				INSERT INTO substitution_actions(id, in_player_id, out_player_id) VALUES(#{entity.id}, #{entity.inPlayer.id, jdbcType=NUMERIC}, #{entity.outPlayer.id, jdbcType=NUMERIC})
+			</when>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.playbyplay.Turnover">
+				INSERT INTO turnover_actions(id, turnover_player_id, steal_player_id) VALUES(#{entity.id}, #{entity.turnoverPlayer.id, jdbcType=NUMERIC}, #{entity.stealPlayer.id, jdbcType=NUMERIC})
+			</when>
+		</choose>
+	</insert>
+	
+	<!-- public int update(PlayByPlayAction entity); -->
+	<update id="update" parameterType="PlayByPlayAction">
+		UPDATE play_by_play_actions
+		SET quarter = #{quarter},
+			timestamp = #{timestamp},
+			description = #{description},
+			sum_score = #{sumScore},
+			modified_on = current_timestamp
+		WHERE id = #{id}
+	</update>
+	
+	<!-- public int deleteById(@Param("id") Long id); -->
+	<delete id="deleteById" parameterType="long">
+		DELETE FROM play_by_play_actions
+		WHERE id = #{id}
+	</delete>
+	
+	
+	<!-- public List<PlayByPlayAction> findPbpActions(LocalTime fromDate, LocalTime toDate); -->
+	<select id="findPbpActions" resultMap="PlayByPlayActionMap">
+		<include refid="getPlayByPlayAction"/>
+		WHERE a.match_id = #{request.matchId}
+		<if test="request.fromDate != null">
+			AND a.timestamp &gt;= #{request.fromDate}
+		</if>
+		<if test="request.toDate != null">
+			AND a.timestamp &lt;= #{request.toDate}
+		</if>
+		<if test="request.quarter != null">
+			AND a.quarter = #{request.quarter}
+		</if>
+		AND a.sent = #{sent}
+		ORDER BY a.timestamp DESC
+	</select>
+	
+	<update id="updateSent" parameterType="long">
+		UPDATE play_by_play_actions
+		SET sent = 1,
+	       	modified_on = current_timestamp
+		WHERE id = #{id}
+		AND sent = 0
+	</update>
+	
+	<select id="countSent" parameterType="int" resultType="long">
+		SELECT count(*)
+		FROM play_by_play_actions
+		WHERE sent = #{sent}
+	</select>
+
+</mapper>

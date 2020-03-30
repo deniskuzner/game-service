@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mozzartbet.gameservice.mapper.LineScoreLeaderMapper">
+
+	<!-- public long count(); -->
+	<select id="count" resultType="Long">
+		SELECT count(*) FROM
+		line_score_leaders
+	</select>
+
+	<resultMap type="LineScoreLeader" id="LineScoreLeaderMap">
+		<id column="id" property="id" />
+		<result column="created_on" property="createdOn" />
+		<result column="modified_on" property="modifiedOn" />
+		
+		<discriminator javaType="string" column="leader_type">
+			<case value="scoring_leader" resultType="ScoringLeader">
+				<result column="match_id" property="matchId"/>
+				<result column="quarter" property="quarter" />
+				<result column="value" property="points" />
+				<association property="player" javaType="Player">
+					<id column="player_id" property="id"/>
+					<result column="player_name" property="name"/>
+					<result column="player_url" property="url"/>
+				</association>
+			</case>
+			<case value="assist_leader" resultType="AssistLeader">
+				<result column="match_id" property="matchId"/>
+				<result column="quarter" property="quarter" />
+				<result column="value" property="assists" />
+				<association property="player" javaType="Player">
+					<id column="player_id" property="id"/>
+					<result column="player_name" property="name"/>
+					<result column="player_url" property="url"/>
+				</association>
+			</case>
+			<case value="rebounding_leader" resultType="ReboundingLeader">
+				<result column="match_id" property="matchId"/>
+				<result column="quarter" property="quarter" />
+				<result column="value" property="rebounds" />
+				<association property="player" javaType="Player">
+					<id column="player_id" property="id"/>
+					<result column="player_name" property="name"/>
+					<result column="player_url" property="url"/>
+				</association>
+			</case>
+		</discriminator>
+	</resultMap>
+	
+	<!-- public int insert(LineScoreLeader entity); -->
+	<insert id="insert" parameterType="LineScoreLeader">
+		<selectKey order="BEFORE" resultType="long" keyProperty="id">
+			select sq_line_score_leaders.nextval from dual
+		</selectKey>
+		<choose>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.statistics.linescore.ScoringLeader">
+				INSERT INTO line_score_leaders(id, created_on, modified_on, quarter, match_id, value, player_id, leader_type) 
+				VALUES(#{id}, current_timestamp, current_timestamp, #{entity.quarter}, #{entity.matchId}, #{entity.points}, #{entity.player.id}, 'scoring_leader')
+			</when>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.statistics.linescore.AssistLeader">
+				INSERT INTO line_score_leaders(id, created_on, modified_on, quarter, match_id, value, player_id, leader_type) 
+				VALUES(#{id}, current_timestamp, current_timestamp, #{entity.quarter}, #{entity.matchId}, #{entity.assists}, #{entity.player.id}, 'assist_leader')
+			</when>
+			<when test="entity instanceof com.mozzartbet.gameservice.domain.statistics.linescore.ReboundingLeader">
+				INSERT INTO line_score_leaders(id, created_on, modified_on, quarter, match_id, value, player_id, leader_type) 
+				VALUES(#{id}, current_timestamp, current_timestamp, #{entity.quarter}, #{entity.matchId}, #{entity.rebounds}, #{entity.player.id}, 'rebounding_leader')
+			</when>
+		</choose>
+	</insert>
+	
+	<sql id="getLineScoreLeader">
+		SELECT l.*, p.name player_name, p.url player_url
+		FROM line_score_leaders l INNER JOIN players p on l.player_id = p.id
+	</sql>
+	
+	<!-- public LineScoreLeader getById(@Param("id") Long id); -->
+	<select id="getById" parameterType="long" resultMap="LineScoreLeaderMap">
+		<include refid="getLineScoreLeader"></include>
+		WHERE l.id = #{id}
+	</select>
+	
+	<!-- public List<LineScoreLeader> getAllForMatch(@Param("matchId") Long matchId); -->
+	<select id="getAllForMatch" parameterType="long" resultMap="LineScoreLeaderMap">
+		<include refid="getLineScoreLeader"></include>
+		WHERE l.match_id = #{matchId}
+	</select>
+	
+	<!-- public List<LineScoreLeader> getForMatchByType(@Param("matchId") Long matchId, @Param("type") String type); -->
+	<select id="getForMatchByType" resultMap="LineScoreLeaderMap">
+		<include refid="getLineScoreLeader"></include>
+		WHERE l.match_id = #{matchId} AND l.leader_type like #{type}
+		ORDER BY quarter
+	</select>
+	
+	<!-- public List<LineScoreLeader> getAll(); -->
+	<select id="getAll" resultMap="LineScoreLeaderMap">
+		<include refid="getLineScoreLeader"></include>
+	</select>
+	
+	<!-- public int update(@Param("entity") LineScoreLeader entity); -->
+	<update id="update" parameterType="LineScoreLeader">
+		UPDATE line_score_leaders
+		SET modified_on = current_timestamp,
+			quarter = #{entity.quarter},
+			player_id = #{entity.player.id},
+			<choose>
+				<when test="entity instanceof com.mozzartbet.gameservice.domain.statistics.linescore.ScoringLeader">
+					value = #{entity.points}
+				</when>
+				<when test="entity instanceof com.mozzartbet.gameservice.domain.statistics.linescore.AssistLeader">
+					value = #{entity.assists}
+				</when>
+				<when test="entity instanceof com.mozzartbet.gameservice.domain.statistics.linescore.ReboundingLeader">
+					value = #{entity.rebounds}
+				</when>
+			</choose>
+		WHERE id = #{entity.id}
+	</update>
+	
+	<!-- public int deleteById(@Param("id") Long id); -->
+	<delete id="deleteById" parameterType="long">
+		DELETE FROM line_score_leaders
+		WHERE id = #{id}
+	</delete>
+
+	<!-- public int deleteForMatch(@Param("matchId") Long matchId); -->
+	<delete id="deleteForMatch" parameterType="long">
+		DELETE FROM line_score_leaders
+		WHERE match_id = #{matchId}
+	</delete>
+	
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mozzartbet.gameservice.mapper.PlayerStatsMapper">
+
+	<!-- public long count(); -->
+	<select id="count" resultType="Long">
+		select count(*) from player_stats
+	</select>
+	
+	<resultMap type="PlayerStats" id="PlayerStatsMap">
+		<id column="id" property="id"/>
+		<result column="created_on" property="createdOn" />
+		<result column="modified_on" property="modifiedOn" />
+	
+		<result column="match_id" property="matchId"/>
+		<result column="field_goals" property="fieldGoals"/>
+		<result column="field_goal_attempts" property="fieldGoalAttempts"/>
+		<result column="field_goal_percentage" property="fieldGoalPercentage"/>
+		<result column="three_point_field_goals" property="threePointFieldGoals"/>
+		<result column="three_point_field_goal_attempts" property="threePointFieldGoalAttempts"/>
+		<result column="three_point_field_goal_percentage" property="threePointFieldGoalPercentage"/>
+		<result column="free_throws" property="freeThrows"/>
+		<result column="free_throw_attempts" property="freeThrowAttempts"/>
+		<result column="free_throw_percentage" property="freeThrowPercentage"/>
+		<result column="offensive_rebounds" property="offensiveRebounds"/>
+		<result column="defensive_rebounds" property="defensiveRebounds"/>
+		<result column="total_rebounds" property="totalRebounds"/>
+		<result column="assists" property="assists"/>
+		<result column="steals" property="steals"/>
+		<result column="blocks" property="blocks"/>
+		<result column="turnovers" property="turnovers"/>
+		<result column="personal_fouls" property="personalFouls"/>
+		<result column="points" property="points"/>
+		
+		<association property="player" javaType="Player">
+			<id column="player_id" property="id"/>
+			<result column="player_url" property="url"/>
+			<result column="player_name" property="name"/>
+		</association>
+	</resultMap>
+	
+	<sql id="getPlayerStats">
+		SELECT ps.*, p.url player_url, p.name player_name
+		FROM player_stats ps INNER JOIN players p on ps.player_id = p.id
+	</sql>
+
+	<!-- public PlayerStats getById(@Param("id") Long id); -->
+	<select id="getById" parameterType="long" resultMap="PlayerStatsMap">
+		<include refid="getPlayerStats"></include>
+		WHERE ps.id = #{id}
+	</select>
+	
+	<!-- public PlayerStats getByMatchId(@Param("matchId") Long matchId, @Param("playerId") Long playerId); -->
+	<select id="getByMatchId" resultMap="PlayerStatsMap">
+		<include refid="getPlayerStats"></include>
+		WHERE ps.match_id = #{matchId} AND ps.player_id = #{playerId}
+	</select>
+	
+	<!-- public List<PlayerStats> getByMatchId(@Param("matchId") Long matchId); -->
+	<select id="getStatsForMatch" parameterType="long" resultMap="PlayerStatsMap">
+		<include refid="getPlayerStats"></include>
+		WHERE match_id = #{matchId}
+	</select>
+
+	<!-- public List<PlayerStats> getAll(); -->
+	<select id="getAll" resultMap="PlayerStatsMap">
+		<include refid="getPlayerStats"></include>
+	</select>
+	
+	<!-- public int insert(PlayerStats entity); -->
+	<insert id="insert" parameterType="PlayerStats">
+		<selectKey order="BEFORE" resultType="long" keyProperty="id">
+			select sq_player_stats.nextval from dual
+		</selectKey>
+		INSERT INTO player_stats(id, created_on, modified_on, match_id, player_id, field_goals, field_goal_attempts, field_goal_percentage, three_point_field_goals,
+		three_point_field_goal_attempts, three_point_field_goal_percentage, free_throws, free_throw_attempts, free_throw_percentage, offensive_rebounds, defensive_rebounds,
+		total_rebounds, assists, steals, blocks, turnovers, personal_fouls, points)
+		VALUES(#{id}, current_timestamp, current_timestamp, #{matchId}, #{player.id}, #{fieldGoals}, #{fieldGoalAttempts}, #{fieldGoalPercentage},
+		#{threePointFieldGoals}, #{threePointFieldGoalAttempts}, #{threePointFieldGoalPercentage}, #{freeThrows}, #{freeThrowAttempts}, #{freeThrowPercentage}, #{offensiveRebounds}, 
+		#{defensiveRebounds}, #{totalRebounds}, #{assists}, #{steals}, #{blocks}, #{turnovers}, #{personalFouls}, #{points})
+	</insert>
+	
+	<!-- public int update(PlayerStats entity); -->
+	<update id="update" parameterType="PlayerStats">
+		UPDATE player_stats
+		SET field_goals = #{fieldGoals}, field_goal_attempts = #{fieldGoalAttempts}, field_goal_percentage = #{fieldGoalPercentage}, three_point_field_goals = #{threePointFieldGoals},
+			three_point_field_goal_attempts = #{threePointFieldGoalAttempts}, three_point_field_goal_percentage = #{threePointFieldGoalPercentage}, free_throws = #{freeThrows}, free_throw_attempts = #{freeThrowAttempts},
+			free_throw_percentage = #{freeThrowPercentage}, offensive_rebounds = #{offensiveRebounds}, defensive_rebounds = #{defensiveRebounds}, total_rebounds = #{totalRebounds}, assists = #{assists},
+			steals = #{steals}, blocks = #{blocks}, turnovers = #{turnovers}, personal_fouls = #{personalFouls}, points = #{points}
+		WHERE id = #{id}
+	</update>
+
+	<!-- public int deleteById(@Param("id") Long id); -->
+	<delete id="deleteById" parameterType="long">
+		delete from player_stats where
+		id = #{id}
+	</delete>
+	
+	<!-- public void deleteForMatch(@Param("matchId") Long matchId); -->
+	<delete id="deleteForMatch" parameterType="long">
+		delete from player_stats where
+		match_id = #{matchId}
+	</delete>
+
+</mapper>

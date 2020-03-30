@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mozzartbet.gameservice.mapper.SeasonMapper">
+	<cache/>
+
+	<!-- public long count(); -->
+	<select id="count" resultType="Long">
+		select count(*) from seasons
+	</select>
+
+	<resultMap type="Season" id="SeasonMap">
+		<id column="id" property="id" />
+		<result column="created_on" property="createdOn" />
+		<result column="modified_on" property="modifiedOn" />
+		
+		<result column="year" property="year"/>
+		<result column="league" property="league"/>
+	</resultMap>
+	
+	<insert id="insert" parameterType="Season">
+		<selectKey order="BEFORE" resultType="long" keyProperty="id">
+			select sq_seasons.nextval from dual
+		</selectKey>
+		INSERT INTO seasons(id, created_on, modified_on, year, league) VALUES(#{id}, current_timestamp, current_timestamp, #{year}, #{league})
+	</insert>
+	
+	<select id="getById" parameterType="long" resultMap="SeasonMap">
+		SELECT *
+		FROM seasons
+		WHERE id = #{id}
+	</select>
+	
+	<select id="getAll" resultMap="SeasonMap">
+		SELECT *
+		FROM seasons
+	</select>
+	
+	<select id="getByYear" resultMap="SeasonMap">
+		SELECT *
+		FROM seasons
+		WHERE year = #{year} AND league like #{league}
+	</select>
+	
+	<update id="update" parameterType="Season">
+		UPDATE seasons
+		SET modified_on = current_timestamp,
+			year = #{year},
+			league = #{league}
+		WHERE id = #{id}
+	</update>
+	
+	<delete id="deleteById" parameterType="long">
+		DELETE FROM seasons
+		WHERE id = #{id}
+	</delete>
+	
+</mapper>

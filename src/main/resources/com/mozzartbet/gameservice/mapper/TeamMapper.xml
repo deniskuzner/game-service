@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mozzartbet.gameservice.mapper.TeamMapper">
+
+	<cache 
+	eviction="FIFO" 
+	size="512" 
+	readOnly="true" />
+
+	<!-- public long count(); -->
+	<select id="count" resultType="Long">
+		select count(*) from teams
+	</select>
+
+	<resultMap type="Team" id="TeamMap">
+		<id column="id" property="id" />
+		<result column="created_on" property="createdOn" />
+		<result column="modified_on" property="modifiedOn" />
+
+		<result column="url" property="url" />
+		<result column="name" property="name" />
+	</resultMap>
+
+	<sql id="getTeam">
+		select *
+		from teams
+	</sql>
+
+	<!-- public List<Team> getAll(); -->
+	<select id="getAll" resultMap="TeamMap">
+		<include refid="getTeam" />
+	</select>
+
+	<!-- public Team getById(@Param("id") Long id); -->
+	<select id="getById" parameterType="long" resultMap="TeamMap">
+		<include refid="getTeam" />
+		where id = #{id}
+	</select>
+
+	<!-- public Team getByUrl(@Param("url") String url); -->
+	<select id="getByUrl" resultMap="TeamMap">
+		<include refid="getTeam" />
+		<where>
+			<if test="url != null">
+				url like #{url}
+			</if>
+		</where>
+	</select>
+
+	<!-- public int insert(Team entity); -->
+	<insert id="insert" parameterType="Team">
+		<selectKey order="BEFORE" resultType="long" keyProperty="id">
+			select sq_teams.nextval from dual
+		</selectKey>
+		insert into teams(id, created_on, modified_on, url, name)
+		values(#{id}, current_timestamp, current_timestamp, #{url}, #{name})
+	</insert>
+
+	<!-- public int update(Team entity); -->
+	<update id="update" parameterType="Team">
+		update teams
+		set
+		name = #{name},
+		url = #{url}
+		where id = #{id}
+	</update>
+
+	<!-- public int deleteById(@Param("id") Long id); -->
+	<delete id="deleteById" parameterType="long">
+		delete from teams
+		where
+		id =
+		#{id}
+	</delete>
+
+</mapper>

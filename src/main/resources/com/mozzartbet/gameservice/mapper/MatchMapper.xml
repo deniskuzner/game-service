@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mozzartbet.gameservice.mapper.MatchMapper">
+
+	<!-- public long count(); -->
+	<select id="count" resultType="Long">
+		select count(*) from matches
+	</select>
+
+	<resultMap type="Match" id="MatchMap">
+		<id column="id" property="id" />
+		<result column="created_on" property="createdOn" />
+		<result column="modified_on" property="modifiedOn" />
+
+		<result column="url" property="url" />
+		<result column="result" property="result" />
+
+		<association property="host" javaType="Team">
+			<id column="host_id" property="id" />
+			<result column="host_name" property="name" />
+			<result column="host_url" property="url" />
+		</association>
+		<association property="guest" javaType="Team">
+			<id column="guest_id" property="id" />
+			<result column="guest_name" property="name" />
+			<result column="guest_url" property="url" />
+		</association>
+		
+		<association property="season" javaType="Season">
+			<id column="season_id" property="id"/>
+			<result column="season_year" property="year"/>
+			<result column="season_league" property="league"/>
+		</association>
+
+	</resultMap>
+	
+	<sql id="getMatch">
+		SELECT m.*, h.name host_name, h.url host_url, g.name guest_name, g.url guest_url, s.id season_id, s.year season_year, s.league season_league
+		FROM matches m INNER JOIN teams h on m.host_id = h.id INNER JOIN teams g on m.guest_id = g.id INNER JOIN seasons s on m.season_id = s.id
+	</sql>
+	
+	<!-- public Match getById(@Param("id") Long id); -->
+	<select id="getById" parameterType="long" resultMap="MatchMap">
+		<include refid="getMatch"></include>
+		WHERE m.id = #{id}
+	</select>
+	
+	<!-- public List<Match> getBySeason(@Param("seasonId") Long seasonId); -->
+	<select id="getBySeason" parameterType="long" resultMap="MatchMap">
+		<include refid="getMatch"></include>
+		WHERE m.season_id = #{seasonId}
+	</select>
+	
+	<!-- public Match getByUrl(@Param("url") String url); -->
+	<select id="getByUrl" resultMap="MatchMap">
+		<include refid="getMatch"></include>
+		WHERE m.url like #{url}
+	</select>
+	
+	<!-- public List<Match> getAll(); -->
+	<select id="getAll" resultMap="MatchMap">
+		<include refid="getMatch"></include>
+	</select>
+
+	<!-- public int insert(Match entity); -->
+	<insert id="insert" parameterType="Match">
+		<selectKey order="BEFORE" resultType="long" keyProperty="id">
+			select sq_matches.nextval from dual
+		</selectKey>
+		INSERT INTO matches(id, created_on, modified_on, url, host_id, guest_id, result, season_id)
+		VALUES(#{id}, current_timestamp, current_timestamp, #{url}, #{host.id}, #{guest.id}, #{result}, #{season.id})
+	</insert>
+	
+	<!-- public int update(Match entity); -->
+	<update id="update" parameterType="Match">
+		UPDATE matches
+		SET url = #{url},
+			result = #{result}
+		WHERE id = #{id}
+	</update>
+	
+	<!-- public int deleteById(@Param("id") Long id); -->
+	<delete id="deleteById">
+		DELETE FROM matches
+		WHERE id = #{id}
+	</delete>
+	
+</mapper>

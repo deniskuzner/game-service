@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mozzartbet.gameservice.mapper.PlayerMapper">
+	
+	<!-- public long count(); -->
+	<select id="count" resultType="Long">
+		select count(*) from players
+	</select>
+
+	<resultMap type="Player" id="PlayerMap">
+		<id column="id" property="id" />
+		<result column="created_on" property="createdOn" />
+		<result column="modified_on" property="modifiedOn" />
+
+		<result column="url" property="url" />
+		<result column="number" property="number" />
+		<result column="name" property="name" />
+		<result column="position" property="position" />
+		<result column="height" property="height" />
+		<result column="weight" property="weight" />
+		<result column="birth_date" property="birthDate" />
+		<result column="experience" property="experience" />
+		<result column="college" property="college" />
+
+		<association property="team" javaType="Team">
+			<id column="team_id" property="id" />
+			<result column="team_name" property="name" />
+			<result column="team_url" property="url"/>
+		</association>
+	</resultMap>
+
+	<sql id="getPlayer">
+		select
+		p.*,
+		t.id team_id, t.name team_name, t.url team_url
+		from
+		players p
+		inner
+		join teams t on t.id = p.team_id
+	</sql>
+
+	<!-- public List<Player> getAll(); -->
+	<select id="getAll" resultMap="PlayerMap">
+		<include refid="getPlayer" />
+	</select>
+
+	<!-- public Player getById(@Param("id") Long id); -->
+	<select id="getById" parameterType="long" resultMap="PlayerMap">
+		<include refid="getPlayer" />
+		where p.id = #{id}
+	</select>
+
+	<!-- public Player getByUrl(@Param("url") String url, @Param("teamId") Long teamId); -->
+	<select id="getByUrl" resultMap="PlayerMap">
+		<include refid="getPlayer" />
+		<where>
+			<if test="url != null">
+				p.url like #{url}
+			</if>
+			<if test="teamId != null">
+				and p.team_id = #{teamId}
+			</if>
+		</where>
+	</select>
+
+	<!-- public int insert(Player entity); -->
+	<insert id="insert" parameterType="Player">
+		<selectKey order="BEFORE" resultType="long" keyProperty="id">
+			select sq_players.nextval from dual
+		</selectKey>
+		insert into players(id, created_on, modified_on, team_id,
+		url, name,
+		"number", position, height, weight, birth_date, experience, college)
+		values(#{id}, current_timestamp, current_timestamp, #{team.id},
+		#{url}, #{name}, #{number, jdbcType=VARCHAR}, #{position, jdbcType=VARCHAR}, #{height, jdbcType=VARCHAR},
+		#{weight, jdbcType=INTEGER}, #{birthDate, jdbcType=VARCHAR}, #{experience, jdbcType=VARCHAR}, #{college, jdbcType=VARCHAR})
+	</insert>
+
+	<!-- public int update(Player entity); -->
+	<update id="update" parameterType="Player">
+		update players
+		set
+		url = #{url},
+		name = #{name},
+		"number" = #{number, jdbcType=VARCHAR},
+		experience = #{experience, jdbcType=VARCHAR},
+		position =  #{position, jdbcType=VARCHAR},
+		height = #{height, jdbcType=VARCHAR},
+		weight = #{weight, jdbcType=INTEGER},
+		college = #{college, jdbcType=VARCHAR},
+		modified_on = current_timestamp
+		where
+		id = #{id}
+	</update>
+
+	<!-- public int deleteById(@Param("id") Long id); -->
+	<delete id="deleteById" parameterType="long">
+		delete from players
+		where
+		id = #{id}
+	</delete>
+
+	<!-- public List<Player> getPlayersForTeam(@Param("teamId") Long teamId); -->
+	<select id="getPlayersForTeam" resultMap="PlayerMap">
+		<include refid="getPlayer" />
+		where t.id = #{teamId}
+		order by p.id
+	</select>
+
+	<!-- public List<Player> searchPlayers(@Param("request") PlayerSearchRequest request); -->
+	<select id="searchPlayers" resultMap="PlayerMap">
+		select p.*
+		from players p
+		<if test="request.teamId != null">
+			inner join teams t on t.id = p.team_id
+		</if>
+		<where>
+			<if test="request.playerName != null">
+				lower(p.name) like lower(#{request.playerName} || '%')
+			</if>
+			<if test="request.teamId != null">
+				and p.team_id = #{request.teamId}
+			</if>
+			<if test="request.positions != null">
+				and p.position in
+				<foreach item="p" collection="request.positions" separator="," open="(" close=")">
+					#{p}
+				</foreach>
+			</if>
+			<if test="request.college != null">
+				and lower(p.college) like lower(#{request.college} || '%')
+			</if>
+			<if test="request.number != null">
+				and lower(p."number") = lower(#{request.number})
+			</if>
+		</where>
+		ORDER BY p.id
+	</select>
+	
+	<!-- public int updateOptimistic(@Param("player") Player player, @Param("expectedModifiedOn") LocalDateTime expectedModifiedOn); -->
+	<update id="updateOptimistic" parameterType="Player">
+		update players
+		set
+			url = #{player.url},
+			name = #{player.name},
+			"number" = #{player.number, jdbcType=VARCHAR},
+			experience = #{player.experience, jdbcType=VARCHAR},
+			position =  #{player.position, jdbcType=VARCHAR},
+			height = #{player.height, jdbcType=VARCHAR},
+			weight = #{player.weight, jdbcType=INTEGER},
+			college = #{player.college, jdbcType=VARCHAR},
+			modified_on = current_timestamp
+		where
+			id = #{player.id}
+			and modified_on = #{expectedModifiedOn}
+	</update>
+
+</mapper>
